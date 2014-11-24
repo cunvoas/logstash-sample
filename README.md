@@ -35,7 +35,7 @@ Téléchargement de la version [1.4.2](http://www.elasticsearch.org/overview/log
 
 Lancement de l'agent logstash (et petit test): 
 ```bash
-> bin/logstash -e ''
+> bin/logstash agent -e ''
 > A simple message
 > {
          "message" => "A simple message\r",
@@ -89,7 +89,7 @@ ERLANG
 
 # Configuration
 
-1 . Configuration minimale
+### Configuration minimale
 Nous allons tout d'abord commencer par définir un fichier de configuration pour logstash puis le passer en paramètre de l'agent.
 Essayons alors de mettre en input l'entrée standard et en output la sortie standard.
 
@@ -111,7 +111,7 @@ output {
 ```
 Lançons désormais l'agent en passant le fichier de configuration en paramètre
 ```bash
-> bin/logstash -f /var/data/logstash/conf/logstash.conf
+> bin/logstash agent -f /var/data/logstash/conf/logstash.conf
 > A second message
 > {
          "message" => "A second message\r",
@@ -122,7 +122,7 @@ Lançons désormais l'agent en passant le fichier de configuration en paramètre
   }
 ```
 
-2. Collecte des données d'un fichier de log
+### Collecte des données d'un fichier de log
 Il faut désormais indiquer à logstash de collecter les données non pas de l'entrée standard mais à partir des logs d'un serveur (ex: log d'accès apache)
 ```bash
 # Différentes sources d'entrée
@@ -135,9 +135,9 @@ input {
 }
 ...
 ```
-En indiquant un type à ces donénes collectées, il sera facile par la suite de travailler avec.
+En indiquant un type à ces données collectées, il sera facile par la suite de travailler avec.
 
-3. Filtrage des données collectées
+### Filtrage des données collectées
 Les données sont brutes, il faut donc indiquer quel pattern elle respecte pour pouvoir ranger la bonne information dans la bonne case. Logstash fournit un ensemble de pattern de base, et utilise la librairie [grok](https://code.google.com/p/semicomplete/wiki/Grok) pour le parsing. 
 Une bonne application pour parser vos data : [http://grokdebug.herokuapp.com].
 
@@ -160,21 +160,22 @@ Et de compléter ma liste de pattern pour grok
 ```bash
 HTTPVERSION (HTTP\/%{NUMBER})
 HTTPMETHOD (GET|POST)
+APACHEACCESSDATESTAMP %{MONTHDAY}/%{MONTH}/20%{YEAR}:%{HOUR}:%{MINUTE}:%{SECOND}
 APACHE_ACCESS_LOG %{IPORHOST:clientip}%{SPACE}\[%{APACHEACCESSDATESTAMP:timestamp}\]%{SPACE}\"%{HTTPMETHOD:httpmethod} %{URIPATHPARAM:url} %{HTTPVERSION:httpversion}\"%{SPACE}%{NUMBER:httpcode}%{SPACE}%{NUMBER:httpresponse}
 ...
 ```
 
 En redémmarrant l'agent les modifications seront prises en comptes et chaque ligne ajoutée dans le fichier sera alors filtrée puis envoyée dans la sortie standard.
 ```bash
-> bin/logstash -f /var/data/logstash/conf/logstash.conf
+> bin/logstash agent -f /var/data/logstash/conf/logstash.conf
 > {
-  	"message": "64.242.88.10\t[08/Mar/2004:01:47:06 -0800]\t \"GET /store/ipad/info HTTP/1.1\" 401 1284\r",
+    "message": "64.242.88.10\t[08/Mar/2004:01:47:06]\t \"GET /store/ipad/info HTTP/1.1\" 401 1284\r",
     "@version": "1",
     "@timestamp": "2014-11-20T15:32:24.186Z",
     "type": "log4j",
     "host": "localhost",
     "clientip": "64.242.88.10",
-    "timestamp": "08/Mar/2004:01:47:06 -0800",
+    "timestamp": "08/Mar/2004:01:47:06",
     "httpmethod": "GET",
     "url": "/store/ipad/info",
     "httpversion": "HTTP/1.1",
@@ -182,8 +183,97 @@ En redémmarrant l'agent les modifications seront prises en comptes et chaque li
     "httpresponse": "1284",
     "tags": [
       "access"
-    ],       
+    ]      
   }
+ ```
+
+### Intégration des données de géolocalisation
+
+Le filtre de géolocation [geoip]() permet d'intégrer facilement à partir de l'adresse IP fournie dans un champs les données de positionnement d'où provient l'hôte ayant effectué la requête. Grâce à cela, il est possible d'intégrer dans le tableau de bord la location précise d'un utilisateur.
+
+Pour cela il faut ajouter les filtres geoip et mutate
+```bash
+filter {
+	if [type] == "apache.access" {
+		grok {
+			# Se basant sur le fichier de pattern grok-pattern
+			match => { "message" => "%{APACHE_ACCESS_LOG}" }
+			add_tag => ["access"]						
+		}
+		mutate {
+			convert => [ "httpreponse", "integer" ]
+			convert => [ "[geoip][coordinates]", "float" ]
+		}
+		geoip {
+			source => "clientip"
+			target => "geoip"
+			add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
+			add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
+		}
+	}
+}
+```
+
+Relançons l'agent logstash avec cette nouvelle congiuration, et voyons que les données en output sont complétées avec des informations de géolocalisations.
+```bash
+> bin/logstash agent -f /var/data/logstash/conf/logstash.conf
+> {
+    "message": "64.242.88.10\t[08/Mar/2004:01:47:06]\t \"GET /store/ipad/info HTTP/1.1\" 401 1284\r",
+    "@version": "1",
+    "@timestamp": "2014-11-20T15:32:24.186Z",
+    "type": "log4j",
+    "host": "localhost",
+    "clientip": "64.242.88.10",
+    "timestamp": "08/Mar/2004:01:47:06",
+    "httpmethod": "GET",
+    "url": "/store/ipad/info",
+    "httpversion": "HTTP/1.1",
+    "httpcode": "401",
+    "httpresponse": "1284",
+    "tags": [
+      "access"
+    ],
+    "geoip": {
+      "ip": "64.242.88.10",
+      "country_code2": "US",
+      "country_code3": "USA",
+      "country_name": "United States",
+      "continent_code": "NA",
+      "region_name": "CA",
+      "city_name": "San Francisco",
+      "postal_code": "94107",
+      "latitude": 37.7697,
+      "longitude": -122.39330000000001,
+      "dma_code": 807,
+      "area_code": 415,
+      "timezone": "America/Los_Angeles",
+      "real_region_name": "California",
+      "location": [
+        -122.39330000000001,
+        37.7697
+      ],
+      "coordinates": [
+        "-122.39330000000001",
+        "37.7697"
+      ]
+    }
+  }
+ ```
+
+
+
+
+
+
+
+
+### Affichage via le DashBoard dans Kibana
+
+Pour lancer Kibana, le module web utilisé pour afficher les données dans un tableau de bord, il suffit de lancer la commande 
+```bash
+> bin/logstash web
+```
+Le tableau de bord est disponbile à http://localhost:9292/index.html#/dashboard/file/logstash.json. Celui est est modifiable à souhait, il est également possible de l'exporter ou d'en importer.
 
 # Démonstration
 

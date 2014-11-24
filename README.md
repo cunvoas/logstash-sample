@@ -260,20 +260,14 @@ Relançons l'agent logstash avec cette nouvelle congiuration, et voyons que les 
   }
  ```
 
-
-
-
-
-
-
-
 ### Affichage via le DashBoard dans Kibana
 
 Pour lancer Kibana, le module web utilisé pour afficher les données dans un tableau de bord, il suffit de lancer la commande 
 ```bash
 > bin/logstash web
 ```
-Le tableau de bord est disponbile à http://localhost:9292/index.html#/dashboard/file/logstash.json. Celui est est modifiable à souhait, il est également possible de l'exporter ou d'en importer.
+Le tableau de bord est disponbile à (http://localhost:9292/index.html#/dashboard/file/logstash.json). Celui est est modifiable à souhait, il est également possible de l'exporter ou d'en importer.
+Celui-ci expose 2 types d'information : la fréquence d'arrivée d'évènement et les données traitées.
 
 # Démonstration
 

@@ -214,7 +214,7 @@ filter {
 }
 ```
 
-Relançons l'agent logstash avec cette nouvelle congiuration, et voyons que les données en output sont complétées avec des informations de géolocalisations.
+Relançons l'agent logstash avec cette nouvelle configuration, et voyons que les données en output sont complétées avec des informations de géolocalisations.
 ```bash
 > bin/logstash agent -f /var/data/logstash/conf/logstash.conf
 > {
@@ -260,6 +260,8 @@ Relançons l'agent logstash avec cette nouvelle congiuration, et voyons que les 
   }
  ```
 
+Remarques : Logstash utilise la base de données GeoLite de Maxmind pour localiser une adresse IP. Cela est configurable dans le filtre pour utiliser une autre base de données.
+
 ### Affichage via le DashBoard dans Kibana
 
 Pour lancer Kibana, le module web utilisé pour afficher les données dans un tableau de bord, il suffit de lancer la commande 
@@ -269,7 +271,12 @@ Pour lancer Kibana, le module web utilisé pour afficher les données dans un ta
 Le tableau de bord est disponbile à (http://localhost:9292/index.html#/dashboard/file/logstash.json). Celui est est modifiable à souhait, il est également possible de l'exporter ou d'en importer.
 Celui-ci expose 2 types d'information : la fréquence d'arrivée d'évènement et les données traitées.
 
+[[image]]
+[[image]]
+
+Il suffit désormais d'afficher les informations de géolocalisation via la configuration du DashBoard (en haut à droite de la page).
+Ajoutons dans un premier temps une ligne (onglet Rows) qui contiendra notre Carte de géolocalisation. Puis en revenant sur la DashBoard il est possible d'aller configurer cette nouvelle ligne en y ajoutant un cadre (Panel) de type "bettermap". Ce cadre a uniquement besoin des coordonnées pour situer la provenance des appels.
+
 # Démonstration
 
-# Aller plus loin
 

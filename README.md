@@ -185,7 +185,24 @@ En redémmarrant l'agent les modifications seront prises en comptes et chaque li
       "access"
     ]      
   }
- ```
+```
+ 
+### Ajout de catégories
+
+Logstash permet de tagguer certaines requêtes, ce qui permet de les retrouver plus facilement par la suite.
+Pour cela, il suffit d'ajouter un tag selon dans telle ou telle condition.
+```bash
+	# Info vs PreCommand
+	if [url] =~ "\/info$" {
+		mutate {
+			add_tag => ["info"]
+		}
+	} else if [url] =~ "\/precommand$" {
+		mutate {
+			add_tag => ["precommand"]
+		}
+	}
+```
 
 ### Intégration des données de géolocalisation
 
@@ -276,6 +293,18 @@ Celui-ci expose 2 types d'information : la fréquence d'arrivée d'évènement e
 
 Il suffit désormais d'afficher les informations de géolocalisation via la configuration du DashBoard (en haut à droite de la page).
 Ajoutons dans un premier temps une ligne (onglet Rows) qui contiendra notre Carte de géolocalisation. Puis en revenant sur la DashBoard il est possible d'aller configurer cette nouvelle ligne en y ajoutant un cadre (Panel) de type "bettermap". Ce cadre a uniquement besoin des coordonnées pour situer la provenance des appels.
+
+[[image]]
+
+Nous pouvons également ajouter la répartition des appels effectués se différençiant par les tags recemment créés.
+
+[[image]]
+
+# Haute disponibilité
+Avec cette architecture, nous voyons bien le rôle important que joue ElasticSearch en tant que composant backend de logstash.
+En cas d'interruption de service de sa part les logs de sont plus disponibles pendant la coupure de service, mais le plus grave est que les logs ne sont plus collectés. Il est donc indispensable de prévoir un mode asynchrone pour la collecte.
+++ répartition de la charge
+
 
 # Démonstration
 

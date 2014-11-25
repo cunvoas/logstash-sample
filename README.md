@@ -333,6 +333,6 @@ Désormais chaque message sera envoyé dans RabbitMQ puis récupéré par Elasti
 # Démonstration
 Un dashboard a été créé pour cette démo, il est déployé sur [Logstash Sample]().
 
-Il est également possible de déployer cette architecture via un [dockerfile] ](https://registry.hub.docker.com/u/poutsjr/logstash-rabbitmq).
+Il est également possible de déployer cette architecture via un [dockerfile] (https://registry.hub.docker.com/u/poutsjr/logstash-rabbitmq).
 
 

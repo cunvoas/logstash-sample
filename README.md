@@ -84,6 +84,12 @@ ElasticSearch ira consommer les messages à son bon vouloir, et poourra même se
 ERLANG
 
 * Installation
+-> ...
+-> installer le plugin river-rabbit dans ElasticSearch
+```bash
+# Dans le répertoire de ElasticSearch (cf https://github.com/elasticsearch/elasticsearch-river-rabbitmq)
+bin/plugin -install elasticsearch/elasticsearch-river-rabbitmq/2.0.0
+```
 
 * Lancement du serveur
 
@@ -303,9 +309,30 @@ Nous pouvons également ajouter la répartition des appels effectués se différ
 # Haute disponibilité
 Avec cette architecture, nous voyons bien le rôle important que joue ElasticSearch en tant que composant backend de logstash.
 En cas d'interruption de service de sa part les logs de sont plus disponibles pendant la coupure de service, mais le plus grave est que les logs ne sont plus collectés. Il est donc indispensable de prévoir un mode asynchrone pour la collecte.
-++ répartition de la charge
+Cela aura aussi pour intérêt de diminuer la charge sur les différents composants.
 
+La nouvelle brique à insérer dans cette architecture est [RabbitMQ](). Bien que performant et robuste, ce choix de broker de message pour le test a été fait vu la facilité d'intégration grâce aux plugin output [ElasticSearch River](http://logstash.net/docs/1.4.2/outputs/elasticsearch_river) qui permet de s'appuyer sur Elastic Search pour la collecte et la recherche et qui configure automatiquement la lecture dans le queue.
+[[image archi appli]]
+
+La configuration de RabbitMQ se fait en quelques étapes :
+* Installation du plugin river-rabbit dans ElasticSearch (voir plus haut)
+* Lancement du serveur RabbitMQ (voir plus haut)
+* Sur la console d'administration, création d'une queue "elasticsearch" et d'un exchange "elasticsearch"
+* Création d'un binding entre la queue et l'exchange avec une routing key nommée "elasticsearch"
+* Configuration de l'output dans logstash
+```bash
+elasticsearch_river {  
+  es_host => "127.0.0.1"
+  rabbitmq_host => "127.0.0.1"
+  exchange_type => "fanout"
+}
+```
+
+Désormais chaque message sera envoyé dans RabbitMQ puis récupéré par ElasticSearch, et sera enfin disponible pour Logstash.
 
 # Démonstration
+Un dashboard a été créé pour cette démo, il est déployé sur [Logstash Sample]().
+
+Il est également possible de déployer cette architecture via [Docker ]().
 
 
